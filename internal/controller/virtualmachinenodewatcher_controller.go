@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -47,7 +46,7 @@ type VirtualMachineNodeWatcherReconciler struct {
 
 	vm   VirtualMachineInterface
 	node NodeWatcherInterface
-	vmm  *VirtualMachineMigration
+	//vmm  *VirtualMachineMigration
 
 	ctx          context.Context
 	cancel       context.CancelFunc
@@ -74,19 +73,19 @@ type migrationVM struct {
 	VMI   virtv1.VirtualMachineInstance
 	Node  string
 	Phase VirtualMachineInstanceMigrationPhase
-	VMM   monitorv1.VirtualMachineMigration
+	//VMM   monitorv1.VirtualMachineMigration
 }
 
 func NewVirtualMachineNodeWatcherReconciler(mgr ctrl.Manager) *VirtualMachineNodeWatcherReconciler {
 	ctx, cancel := context.WithCancel(context.Background()) // 创建上下文和取消函数
 	return &VirtualMachineNodeWatcherReconciler{
-		Client:          mgr.GetClient(),
-		Log:             mgr.GetLogger(),
-		Scheme:          mgr.GetScheme(),
-		workqueue:       workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
-		recorder:        mgr.GetEventRecorderFor("VirtualMachineNodeWatcher"),
-		vm:              NewDefaultVirtualMachine(),
-		vmm:             NewVirtualMachineMigration(mgr.GetClient()),
+		Client:    mgr.GetClient(),
+		Log:       mgr.GetLogger(),
+		Scheme:    mgr.GetScheme(),
+		workqueue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		recorder:  mgr.GetEventRecorderFor("VirtualMachineNodeWatcher"),
+		vm:        NewDefaultVirtualMachine(),
+		//vmm:             NewVirtualMachineMigration(mgr.GetClient()),
 		node:            NewNodeWatcher(mgr.GetClient()),
 		ticker:          time.NewTicker(1 * time.Minute),
 		interval:        5,
@@ -204,7 +203,6 @@ func (r *VirtualMachineNodeWatcherReconciler) runWorker(ctx context.Context) {
 
 // syncQueue 方法用于同步虚拟机迁移队列 定时将迁移的虚拟机列表加入工作队列
 func (r *VirtualMachineNodeWatcherReconciler) syncQueue() {
-	defer r.Log.Info(fmt.Sprintf("sync virtual machine migration queue complete"))
 	defer r.recorder.Event(&monitorv1.VirtualMachineNodeWatcher{}, corev1.EventTypeNormal, "SyncComplete", "Sync of virtual machine migration queue complete")
 
 	r.migratingVMs.Range(func(key, value interface{}) bool {
@@ -223,25 +221,26 @@ func (r *VirtualMachineNodeWatcherReconciler) addMigration(name string, mvm *mig
 	if _, ok := r.migratingVMs.Load(key); ok {
 		return
 	}
-	migration := &monitorv1.VirtualMachineMigration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: mvm.VMI.Namespace, // 如果需要指定 Namespace，根据实际情况设置
-		},
-		Status: monitorv1.VirtualMachineMigrationStatus{
-			Name: mvm.VMI.Name,
-			//Status:        mvm.Status,
-			Node:          mvm.Node,
-			MigrationTime: metav1.Now(),
-		},
-	}
-	mvm.VMM = *migration
-	// 创建VirtualMachineMigration资源
-	err := r.vmm.Create(context.Background(), migration)
-	if err != nil {
-		r.Log.Error(err, "创建VirtualMachineMigration资源")
-		//return
-	}
+	//migration := &monitorv1.VirtualMachineMigration{
+	//	ObjectMeta: metav1.ObjectMeta{
+	//		Name:      name,
+	//		Namespace: mvm.VMI.Namespace, // 如果需要指定 Namespace，根据实际情况设置
+	//	},
+	//	Status: monitorv1.VirtualMachineMigrationStatus{
+	//		Name: mvm.VMI.Name,
+	//		//Status:        mvm.Status,
+	//		Node:          mvm.Node,
+	//		MigrationTime: metav1.Now(),
+	//	},
+	//}
+	//mvm.VMM = *migration
+	//// 创建VirtualMachineMigration资源
+	//err := r.vmm.Create(context.Background(), migration)
+	//if err != nil {
+	//	r.Log.Error(err, "Create VirtualMachineMigration Resources")
+	//	//return
+	//}
+	r.Log.Info(fmt.Sprintf("Add a virtual machine instance %s In Migration Queue", key))
 	r.migratingVMs.Store(key, mvm)
 }
 
@@ -309,20 +308,20 @@ func (r *VirtualMachineNodeWatcherReconciler) syncHandler(ctx context.Context, k
 	if mvm, ok := r.migratingVMs.Load(key); ok {
 		if mvm.(*migrationVM).Phase == MigrationCancel {
 			r.Log.Info(fmt.Sprintf("Resume node status to cancel migration %s", key))
-			err := r.vmm.Delete(mvm.(*migrationVM).VMM.Name)
-			if err != nil {
-				r.Log.Error(err, "Delete VirtualMachineMigration Resource failure")
-				return err
-			}
+			//err := r.vmm.Delete(mvm.(*migrationVM).VMM.Name)
+			//if err != nil {
+			//	r.Log.Error(err, "Delete VirtualMachineMigration Resource failure")
+			//	return err
+			//}
 			r.migratingVMs.Delete(key)
 			return nil
 		}
-		defer func() {
-			err := r.vmm.Delete(mvm.(*migrationVM).VMM.Name)
-			if err != nil {
-				r.Log.Error(err, "Delete VirtualMachineMigration Resource failure")
-			}
-		}()
+		//defer func() {
+		//	err := r.vmm.Delete(mvm.(*migrationVM).VMM.Name)
+		//	if err != nil {
+		//		r.Log.Error(err, "Delete VirtualMachineMigration Resource failure")
+		//	}
+		//}()
 	}
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
@@ -346,19 +345,21 @@ func (r *VirtualMachineNodeWatcherReconciler) syncHandler(ctx context.Context, k
 	if isMigrating {
 		r.Log.Info(fmt.Sprintf("VMI %s is Migrating", vmi.Name))
 		return nil
-	} else {
-		r.Log.Info(fmt.Sprintf("Virtual machine instance launch migration Name: %s Namespace: %s Status: %s Node: %s",
+	}
+
+	// 使用删除pod来替代使用kubevirt客户端的迁移
+	// 执行虚拟机实例迁移
+	ok, err := r.node.Migrate(ctx, vmi)
+	if err != nil {
+		return err
+	}
+	if ok {
+		r.Log.Info(fmt.Sprintf("Start Virtual Machine Migration Name:%s Namespace:%s Status:%s Node:%s",
 			vmi.Name,
 			vmi.Namespace,
 			vmi.Status.Phase,
 			vmi.Status.NodeName,
 		))
-	}
-
-	// 使用删除pod来替代使用kubevirt客户端的迁移
-	// 执行虚拟机实例迁移
-	if err = r.node.Migrate(ctx, vmi); err != nil {
-		return err
 	}
 
 	//// 执行虚拟机实例迁移
@@ -373,11 +374,11 @@ func (r *VirtualMachineNodeWatcherReconciler) syncHandler(ctx context.Context, k
 // clean 清空迁移的虚拟机列表
 func (r *VirtualMachineNodeWatcherReconciler) clean() {
 	r.migratingVMs.Range(func(key, value interface{}) bool {
-		err := r.vmm.Delete(value.(*migrationVM).VMM.Name)
-		if err != nil {
-			r.Log.Error(err, "Delete VirtualMachineMigration Resource failure")
-			return false
-		}
+		//err := r.vmm.Delete(value.(*migrationVM).VMM.Name)
+		//if err != nil {
+		//	r.Log.Error(err, "Delete VirtualMachineMigration Resource failure")
+		//	return false
+		//}
 		r.migratingVMs.Delete(key)
 		return true
 	})
@@ -430,6 +431,10 @@ func (r *VirtualMachineNodeWatcherReconciler) syncVMsToMigrate(ctx context.Conte
 			return nil, err
 		}
 
+		//for k, _ := range runningNodes {
+		//	r.Log.Info(fmt.Sprintf("运行虚拟机的节点 %s", k))
+		//}
+
 		// 定义一个列表来存储运行在不健康节点上的虚拟机实例
 		var vs []virtv1.VirtualMachineInstance
 
@@ -464,6 +469,7 @@ func (r *VirtualMachineNodeWatcherReconciler) syncVMsToMigrate(ctx context.Conte
 			continue
 		}
 		if !ok && vmi.IsMigratable() {
+			//r.Log.Info(fmt.Sprintf("需要迁移的虚拟机实例 %s namespace %s node %s", vmi.Name, vmi.Namespace, vmi.Status.NodeName))
 			r.addMigration(vmi.Name, &migrationVM{
 				VMI:   vmi,
 				Node:  vmi.Status.NodeName,

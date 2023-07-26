@@ -70,7 +70,6 @@ type VirtualMachineMigrationList struct {
 
 //+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachinemigrations,verbs=create;delete;get;list;patch;update;watch
 
-
 func init() {
 	SchemeBuilder.Register(&VirtualMachineMigration{}, &VirtualMachineMigrationList{})
 }

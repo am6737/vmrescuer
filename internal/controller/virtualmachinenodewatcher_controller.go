@@ -515,4 +515,3 @@ func (r *VirtualMachineNodeWatcherReconciler) SetupWithManager(mgr ctrl.Manager)
 		Watches(&source.Kind{Type: &corev1.Node{}}, handler.Funcs{UpdateFunc: r.nodeUpdateHandler}).
 		Complete(r)
 }
-

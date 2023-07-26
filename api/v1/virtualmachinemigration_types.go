@@ -68,6 +68,9 @@ type VirtualMachineMigrationList struct {
 	Items           []VirtualMachineMigration `json:"items"`
 }
 
+//+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachinemigrations,verbs=create;delete;get;list;patch;update;watch
+
+
 func init() {
 	SchemeBuilder.Register(&VirtualMachineMigration{}, &VirtualMachineMigrationList{})
 }

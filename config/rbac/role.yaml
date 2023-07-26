@@ -40,7 +40,7 @@ rules:
 - apiGroups:
   - monitor.hitosea.com
   resources:
-  - virtualmachinemigrations
+  - VirtualMachineInstanceMigrations
   verbs:
   - create
   - delete

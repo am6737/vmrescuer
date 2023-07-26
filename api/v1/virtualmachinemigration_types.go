@@ -23,53 +23,64 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// VirtualMachineMigrationSpec defines the desired state of VirtualMachineMigration
-type VirtualMachineMigrationSpec struct {
+// VirtualMachineInstanceMigrationSpec defines the desired state of VirtualMachineInstanceMigration
+type VirtualMachineInstanceMigrationSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Enable "make" to regenerate code after modifying this file
 
-	// Foo is an example field of VirtualMachineMigration. Edit virtualmachinemigration_types.go to remove/update
+	// Foo is an example field of VirtualMachineInstanceMigration. Edit VirtualMachineInstanceMigration_types.go to remove/update
 	Foo string `json:"foo,omitempty"`
 }
 
-// VirtualMachineMigrationStatus defines the observed state of VirtualMachineMigration
-type VirtualMachineMigrationStatus struct {
+type VirtualMachineInstanceMigrationPhase string
+
+const (
+	MigrationPending   VirtualMachineInstanceMigrationPhase = "Pending"
+	MigrationQueuing   VirtualMachineInstanceMigrationPhase = "Queuing"
+	MigrationRunning   VirtualMachineInstanceMigrationPhase = "Running"
+	MigrationSucceeded VirtualMachineInstanceMigrationPhase = "Succeeded"
+	MigrationFailed    VirtualMachineInstanceMigrationPhase = "Failed"
+	MigrationCancel    VirtualMachineInstanceMigrationPhase = "Cancel"
+)
+
+// VirtualMachineInstanceMigrationStatus defines the observed state of VirtualMachineInstanceMigration
+type VirtualMachineInstanceMigrationStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Enable "make" to regenerate code after modifying this file
-	Name          string      `json:"name,omitempty"`
-	Status        string      `json:"status,omitempty"`
-	Node          string      `json:"node,omitempty"`
-	MigrationTime metav1.Time `json:"migration_time,omitempty"`
+	Name          string                               `json:"name,omitempty"`
+	Phase         VirtualMachineInstanceMigrationPhase `json:"phase,omitempty"`
+	Node          string                               `json:"node,omitempty"`
+	MigrationTime metav1.Time                          `json:"migration_time,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Name",type="string",JSONPath=".status.name",description="The schedule in Cron format"
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status"
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.status"
 // +kubebuilder:printcolumn:name="Node",type="string",JSONPath=".status.node"
 // +kubebuilder:printcolumn:name="MigrationTime",type="date",JSONPath=".status.migrationTime"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 
-// VirtualMachineMigration is the Schema for the virtualmachinemigrations API
-type VirtualMachineMigration struct {
+//+kubebuilder:rbac:groups=monitor.hitosea.com,resources=VirtualMachineInstanceMigrations,verbs=create;delete;get;list;patch;update;watch
+
+// VirtualMachineInstanceMigration is the Schema for the VirtualMachineInstanceMigrations API
+type VirtualMachineInstanceMigration struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VirtualMachineMigrationSpec   `json:"spec,omitempty"`
-	Status VirtualMachineMigrationStatus `json:"status,omitempty"`
+	Spec   VirtualMachineInstanceMigrationSpec   `json:"spec,omitempty"`
+	Status VirtualMachineInstanceMigrationStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// VirtualMachineMigrationList contains a list of VirtualMachineMigration
-type VirtualMachineMigrationList struct {
+// VirtualMachineInstanceMigrationList contains a list of VirtualMachineInstanceMigration
+type VirtualMachineInstanceMigrationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VirtualMachineMigration `json:"items"`
+	Items           []VirtualMachineInstanceMigration `json:"items"`
 }
 
-//+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachinemigrations,verbs=create;delete;get;list;patch;update;watch
-
 func init() {
-	SchemeBuilder.Register(&VirtualMachineMigration{}, &VirtualMachineMigrationList{})
+	SchemeBuilder.Register(&VirtualMachineInstanceMigration{}, &VirtualMachineInstanceMigrationList{})
 }

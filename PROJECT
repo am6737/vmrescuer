@@ -22,7 +22,7 @@ resources:
     namespaced: true
   domain: hitosea.com
   group: monitor
-  kind: VirtualMachineMigration
+  kind: VirtualMachineInstanceMigration
   path: vmrescuer/api/v1
   version: v1
 version: "3"

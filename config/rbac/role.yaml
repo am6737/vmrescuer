@@ -47,3 +47,17 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - kubevirt.io
+  resources:
+  - virtualmachineinstancemigrations
+  verbs:
+  - list
+- apiGroups:
+  - ''
+  resources:
+  - pod
+  verbs:
+  - get
+  - list
+  - delete

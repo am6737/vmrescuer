@@ -72,7 +72,6 @@ func (n *NodeWatcher) GetPodByVMI(ctx context.Context, vmi *virt.VirtualMachineI
 			if condition.Type == "Ready" && condition.Status == "False" {
 				// 创建一个新的 Pod 对象并将其指针添加到 candidatePods 切片
 				candidatePod := pod.DeepCopy()
-				fmt.Println(fmt.Sprintf("找到了需要删除的pod %s", candidatePod.Name))
 				candidatePods = append(candidatePods, candidatePod)
 				break
 			}

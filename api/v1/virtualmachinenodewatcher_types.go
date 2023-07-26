@@ -62,14 +62,6 @@ type VirtualMachineNodeWatcherList struct {
 	Items           []VirtualMachineNodeWatcher `json:"items"`
 }
 
-//+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachinenodewatchers,verbs=create;delete;get;list;patch;update;watch
-//+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachinenodewatchers/finalizers,verbs=update
-//+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachinenodewatchers/status,verbs=get;patch;update
-//+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
-//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete
-//+kubebuilder:rbac:groups=kubevirt.io,resources=virtualmachineinstances,verbs=get;list;watch
-//+kubebuilder:rbac:groups=kubevirt.io,resources=virtualmachineinstancemigrations,verbs=get;list
-
 func init() {
 	SchemeBuilder.Register(&VirtualMachineNodeWatcher{}, &VirtualMachineNodeWatcherList{})
 }

@@ -44,11 +44,6 @@ type VirtualMachineMigrationStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Name",type="string",JSONPath=".status.name",description="The schedule in Cron format"
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status"
-// +kubebuilder:printcolumn:name="Node",type="string",JSONPath=".status.node"
-// +kubebuilder:printcolumn:name="MigrationTime",type="date",JSONPath=".status.migrationTime"
-// +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 
 // VirtualMachineMigration is the Schema for the virtualmachinemigrations API
 type VirtualMachineMigration struct {
@@ -67,6 +62,12 @@ type VirtualMachineMigrationList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []VirtualMachineMigration `json:"items"`
 }
+
+// +kubebuilder:printcolumn:name="Name",type="string",JSONPath=".status.name",description="The schedule in Cron format"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status"
+// +kubebuilder:printcolumn:name="Node",type="string",JSONPath=".status.node"
+// +kubebuilder:printcolumn:name="MigrationTime",type="date",JSONPath=".status.migrationTime"
+// +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 
 //+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachinemigrations,verbs=create;delete;get;list;patch;update;watch
 

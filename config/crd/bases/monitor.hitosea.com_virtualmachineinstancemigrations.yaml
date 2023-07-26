@@ -5,37 +5,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: virtualmachinemigrations.monitor.hitosea.com
+  name: virtualmachineinstancemigrations.monitor.hitosea.com
 spec:
   group: monitor.hitosea.com
   names:
-    kind: VirtualMachineMigration
-    listKind: VirtualMachineMigrationList
-    plural: virtualmachinemigrations
-    singular: virtualmachinemigration
+    kind: VirtualMachineInstanceMigration
+    listKind: VirtualMachineInstanceMigrationList
+    plural: virtualmachineinstancemigrations
+    singular: virtualmachineinstancemigration
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - description: The schedule in Cron format
-      jsonPath: .status.name
-      name: Name
-      type: string
-    - jsonPath: .status.status
-      name: Status
-      type: string
-    - jsonPath: .status.node
-      name: Node
-      type: string
-    - jsonPath: .status.migrationTime
-      name: MigrationTime
-      type: date
-    - jsonPath: .metadata.creationTimestamp
-      name: AGE
-      type: date
-    name: v1
+  - name: v1
     schema:
       openAPIV3Schema:
-        description: VirtualMachineMigration is the Schema for the virtualmachinemigrations
+        description: VirtualMachineInstanceMigration is the Schema for the VirtualMachineInstanceMigrations
           API
         properties:
           apiVersion:
@@ -51,17 +34,17 @@ spec:
           metadata:
             type: object
           spec:
-            description: VirtualMachineMigrationSpec defines the desired state of
-              VirtualMachineMigration
+            description: VirtualMachineInstanceMigrationSpec defines the desired state
+              of VirtualMachineInstanceMigration
             properties:
               foo:
-                description: Foo is an example field of VirtualMachineMigration. Edit
-                  virtualmachinemigration_types.go to remove/update
+                description: Foo is an example field of VirtualMachineInstanceMigration.
+                  Edit VirtualMachineInstanceMigration_types.go to remove/update
                 type: string
             type: object
           status:
-            description: VirtualMachineMigrationStatus defines the observed state
-              of VirtualMachineMigration
+            description: VirtualMachineInstanceMigrationStatus defines the observed
+              state of VirtualMachineInstanceMigration
             properties:
               migration_time:
                 format: date-time
@@ -73,7 +56,7 @@ spec:
                 type: string
               node:
                 type: string
-              status:
+              phase:
                 type: string
             type: object
         type: object

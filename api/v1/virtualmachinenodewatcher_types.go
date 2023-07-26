@@ -41,8 +41,8 @@ type VirtualMachineNodeWatcherStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
-// +kubebuilder:printcolumn:name="Interval",type="string",JSONPath=".spec.interval"
+//+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
+//+kubebuilder:printcolumn:name="Interval",type="string",JSONPath=".spec.interval"
 
 // VirtualMachineNodeWatcher is the Schema for the virtualmachinenodewatchers API
 type VirtualMachineNodeWatcher struct {

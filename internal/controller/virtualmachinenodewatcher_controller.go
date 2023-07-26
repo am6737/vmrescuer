@@ -240,7 +240,11 @@ func (r *VirtualMachineNodeWatcherReconciler) addMigration(name string, mvm *mig
 	//	r.Log.Error(err, "Create VirtualMachineMigration Resources")
 	//	//return
 	//}
+<<<<<<< HEAD
 	r.Log.Info(fmt.Sprintf("Add a virtual machine instance %s In Migration Queue", key))
+=======
+	r.Log.Info(fmt.Sprintf("添加虚拟机实例 %s 入迁移队列", key))
+>>>>>>> 5bcb94f... 添加自定义资源的rbac注解
 	r.migratingVMs.Store(key, mvm)
 }
 

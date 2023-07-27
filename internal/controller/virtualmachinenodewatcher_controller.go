@@ -142,6 +142,20 @@ func (r *VirtualMachineNodeWatcherReconciler) Reconcile(ctx context.Context, req
 
 func (r *VirtualMachineNodeWatcherReconciler) runWorker(ctx context.Context) {
 	defer r.ticker.Stop()
+	//newVmim := &monitorv1.VirtualMachineInstanceMigration{
+	//	ObjectMeta: metav1.ObjectMeta{
+	//		Name: "t1",
+	//		//Namespace: mvm.VMI.Namespace,
+	//	},
+	//	Status: monitorv1.VirtualMachineInstanceMigrationStatus{
+	//		Phase:         monitorv1.MigrationPending,
+	//		MigrationTime: metav1.Now(),
+	//	},
+	//}
+	//if _, err := r.vmm.Create(newVmim, &metav1.CreateOptions{}); err != nil {
+	//	r.Log.Error(err, "Create migration Resources")
+	//	return
+	//}
 	go func() {
 		for {
 			select {
@@ -172,6 +186,7 @@ func (r *VirtualMachineNodeWatcherReconciler) syncQueue() {
 
 	for _, vimm := range vimml.Items {
 		vimm.Status.Phase = monitorv1.MigrationQueuing
+		r.Log.Info(fmt.Sprintf("添加入工作队列的 VirtualMachineInstanceMigration 名称：%s", vimm.Name))
 		r.workqueue.Add(vimm.Name)
 	}
 }
@@ -179,12 +194,29 @@ func (r *VirtualMachineNodeWatcherReconciler) syncQueue() {
 // addMigration 向虚拟机迁移列表中添加新的虚拟机
 func (r *VirtualMachineNodeWatcherReconciler) addMigration(name string, mvm *migration, node string) {
 	// 命名空间加上虚拟机名称作为创建VirtualMachineInstanceMigration资源的名称
-	key := fmt.Sprintf("%s/%s", mvm.VMI.Namespace, name)
+	key := fmt.Sprintf("%s-%s", mvm.VMI.Namespace, name)
+	fmt.Println("addMigration name ", name)
 
-	// 检测是否已经存在迁移的列表中
-	if vmim, err := r.vmm.Get(mvm.Name, &metav1.GetOptions{}); vmim != nil && err != nil {
+	ok, _ := r.vmm.Has(key)
+	//if err != nil {
+	//	r.Log.Error(err, "Failed to obtain VirtualMachineInstanceMigration resource -2")
+	//	return
+	//}
+	if ok {
+		r.Log.Info(fmt.Sprintf("Resource %s already exists", key))
 		return
 	}
+
+	//resp, err := r.vmm.Get(key, mvm.VMI.Namespace, &metav1.GetOptions{})
+	//if err != nil {
+	//	r.Log.Error(err, "Get migration Resources")
+	//	//return
+	//}
+	//
+	//if resp != nil {
+	//	r.Log.Error(err, fmt.Sprintf("Resource %s already exists", key))
+	//	return
+	//}
 
 	newVmim := &monitorv1.VirtualMachineInstanceMigration{
 		ObjectMeta: metav1.ObjectMeta{
@@ -202,6 +234,7 @@ func (r *VirtualMachineNodeWatcherReconciler) addMigration(name string, mvm *mig
 		r.Log.Error(err, "Create migration Resources")
 		return
 	}
+
 	r.Log.Info(fmt.Sprintf("Add a VirtualMachineInstance %s In Migration Queue", key))
 }
 
@@ -239,9 +272,9 @@ func (r *VirtualMachineNodeWatcherReconciler) processQueue(ctx context.Context) 
 		if err := r.syncHandler(ctx, key); err != nil {
 			r.Log.Error(err, fmt.Sprintf("VirtualMachineInstance %s migration failed and rejoined the migration queue", key))
 			// Put the item back on the workqueue to handle any transient errors.
-			r.workqueue.AddRateLimited(key)
+			//r.workqueue.AddRateLimited(key)
 			r.workqueue.Forget(obj)
-			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
+			return fmt.Errorf("error syncing %s: %s, requeuing", key, err.Error())
 		}
 		// 更新VirtualMachineInstanceMigration资源状态为完成
 		//r.vmm.UpdateStatus()
@@ -262,20 +295,53 @@ func (r *VirtualMachineNodeWatcherReconciler) processQueue(ctx context.Context) 
 
 func (r *VirtualMachineNodeWatcherReconciler) syncHandler(ctx context.Context, key string) error {
 
-	vmim, err := r.vmm.Get(key, &metav1.GetOptions{})
-	if err != nil {
-		r.Log.Error(err, "Failed to obtain VirtualMachineInstanceMigration resource")
-		return err
-	}
+	r.Log.Info(fmt.Sprintf("syncHandler key %s", key))
 
-	if vmim.Status.Phase == monitorv1.MigrationCancel {
-		r.Log.Info(fmt.Sprintf("VirtualMachineInstanceMigration %s Canceled", key))
-		return nil
-	}
+	//vmim, err := r.vmm.Get(key, &metav1.GetOptions{})
+	//if err != nil {
+	//	r.Log.Error(err, "Failed to obtain VirtualMachineInstanceMigration resource")
+	//	return err
+	//}
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return err
+	}
+
+	list, err := r.vmm.List(nil)
+	if err != nil {
+		return err
+	}
+
+	r.Log.Info(fmt.Sprintf("r.vmm.List %v", list))
+
+	for _, v := range list.Items {
+		r.Log.Info(fmt.Sprintf("r.vmm.List item %v", v))
+	}
+
+	//vmim := &monitorv1.VirtualMachineInstanceMigration{}
+	//r.Log.Info(fmt.Sprintf("key %s", key))
+	//r.Log.Info(fmt.Sprintf("vmim.Namespace %s", vmim.Namespace))
+
+	ok, vmim := r.vmm.Has(key)
+	//if err != nil {
+	//	r.Log.Error(err, "Failed to obtain VirtualMachineInstanceMigration resource -2")
+	//	return err
+	//}
+	if !ok {
+		r.Log.Info(fmt.Sprintf("Resource %s does not exist", key))
+		return nil
+	}
+
+	//_, err = r.vmm.Get(key, namespace, &metav1.GetOptions{})
+	//if err != nil {
+	//	r.Log.Error(err, "Failed to obtain VirtualMachineInstanceMigration resource -2")
+	//	return err
+	//}
+
+	if vmim.Status.Phase == monitorv1.MigrationCancel {
+		r.Log.Info(fmt.Sprintf("VirtualMachineInstanceMigration %s Canceled", key))
+		return nil
 	}
 
 	// 根据 Namespace 和 Name 获取虚拟机实例对象
@@ -298,7 +364,7 @@ func (r *VirtualMachineNodeWatcherReconciler) syncHandler(ctx context.Context, k
 
 	// 使用删除pod来替代使用kubevirt客户端的迁移
 	// 执行虚拟机实例迁移
-	ok, err := r.node.Migrate(ctx, vmi)
+	ok, err = r.node.Migrate(ctx, vmi)
 	if err != nil {
 		return err
 	}
@@ -309,6 +375,12 @@ func (r *VirtualMachineNodeWatcherReconciler) syncHandler(ctx context.Context, k
 			vmi.Status.Phase,
 			vmi.Status.NodeName,
 		))
+	}
+
+	err = r.Delete(ctx, vmim, client.PropagationPolicy(metav1.DeletePropagationBackground))
+	if err != nil {
+		r.Log.Error(err, "delete err")
+		return nil
 	}
 
 	//// 使用kubevirt客户端执行虚拟机实例迁移

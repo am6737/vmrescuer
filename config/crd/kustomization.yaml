@@ -3,7 +3,7 @@
 # It should be run by config/default
 resources:
 - bases/monitor.hitosea.com_virtualmachinenodewatchers.yaml
-- bases/monitor.hitosea.com_virtualmachinemigrations.yaml
+- bases/monitor.hitosea.com_virtualmachineinstancemigrations.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

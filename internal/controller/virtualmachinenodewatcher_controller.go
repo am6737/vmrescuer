@@ -100,6 +100,7 @@ func NewVirtualMachineNodeWatcherReconciler(mgr ctrl.Manager) *VirtualMachineNod
 //+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachinenodewatchers/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete
+//+kubebuilder:rbac:groups="",resources=events,verbs=patch
 //+kubebuilder:rbac:groups=kubevirt.io,resources=virtualmachineinstances,verbs=get;list;watch
 //+kubebuilder:rbac:groups=kubevirt.io,resources=virtualmachineinstancemigrations,verbs=get;list
 
@@ -191,12 +192,12 @@ func (r *VirtualMachineNodeWatcherReconciler) runWorker(ctx context.Context) {
 				r.syncQueue()
 			case <-r.runWorkerStopCh:
 				// 收到信号，停止处理循环
-				r.Log.Info("收到关闭通道信号 结束 runWorker")
+				r.Log.Info("Close channel signal received 结束 runWorker")
 				r.clean()
 				return
 			case <-r.ctx.Done():
 				// 上下文已取消，停止处理循环
-				r.Log.Info("结束 runWorker")
+				r.Log.Info("Context canceled Stop runWorker")
 				return
 			}
 		}
@@ -286,7 +287,7 @@ func (r *VirtualMachineNodeWatcherReconciler) processQueue(ctx context.Context) 
 			return nil
 		}
 		if err := r.syncHandler(ctx, key); err != nil {
-			r.Log.Error(err, fmt.Sprintf("虚拟机实例%s 迁移失败重新加入迁移队列", key))
+			r.Log.Error(err, fmt.Sprintf("VirtualMachineInstance %s Migration failed to rejoin the migration queue", key))
 			// Put the item back on the workqueue to handle any transient errors.
 			r.workqueue.AddRateLimited(key)
 			r.workqueue.Forget(obj)

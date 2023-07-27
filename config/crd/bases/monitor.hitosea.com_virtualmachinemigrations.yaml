@@ -15,24 +15,7 @@ spec:
     singular: virtualmachinemigration
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - description: The schedule in Cron format
-      jsonPath: .status.name
-      name: Name
-      type: string
-    - jsonPath: .status.status
-      name: Status
-      type: string
-    - jsonPath: .status.node
-      name: Node
-      type: string
-    - jsonPath: .status.migrationTime
-      name: MigrationTime
-      type: date
-    - jsonPath: .metadata.creationTimestamp
-      name: AGE
-      type: date
-    name: v1
+  - name: v1
     schema:
       openAPIV3Schema:
         description: VirtualMachineMigration is the Schema for the virtualmachinemigrations

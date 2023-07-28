@@ -18,7 +18,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: VirtualMachineInstanceMigration is the Schema for the VirtualMachineInstanceMigrations
+        description: VirtualMachineInstanceMigration is the Schema for the virtualmachineinstancemigrations
           API
         properties:
           apiVersion:
@@ -39,25 +39,12 @@ spec:
             properties:
               foo:
                 description: Foo is an example field of VirtualMachineInstanceMigration.
-                  Edit VirtualMachineInstanceMigration_types.go to remove/update
+                  Edit virtualmachineinstancemigration_types.go to remove/update
                 type: string
             type: object
           status:
             description: VirtualMachineInstanceMigrationStatus defines the observed
               state of VirtualMachineInstanceMigration
-            properties:
-              migration_time:
-                format: date-time
-                type: string
-              name:
-                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                  of cluster Important: Enable "make" to regenerate code after modifying
-                  this file'
-                type: string
-              node:
-                type: string
-              phase:
-                type: string
             type: object
         type: object
     served: true

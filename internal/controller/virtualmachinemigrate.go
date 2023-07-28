@@ -4,7 +4,6 @@ import (
 	"context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/cache"
 	virtv1 "kubevirt.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	v1 "vmrescuer/api/v1"
@@ -15,11 +14,10 @@ type VirtualMachineInstanceMigrationInterface interface {
 	List(opts *metav1.ListOptions) (*v1.VirtualMachineInstanceMigrationList, error)
 	Create(migration *v1.VirtualMachineInstanceMigration, options *client.CreateOptions) (*v1.VirtualMachineInstanceMigration, error)
 	Update(*v1.VirtualMachineInstanceMigration) (*v1.VirtualMachineInstanceMigration, error)
-	Delete(name string, options *client.DeleteOptions) error
+	Delete(name, namespace string, options *client.DeleteOptions) error
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.VirtualMachineInstanceMigration, err error)
 	UpdateStatus(*v1.VirtualMachineInstanceMigration) (*v1.VirtualMachineInstanceMigration, error)
 	PatchStatus(name string, pt types.PatchType, data []byte) (result *v1.VirtualMachineInstanceMigration, err error)
-
 	Has(key string) (bool, *v1.VirtualMachineInstanceMigration)
 }
 
@@ -33,13 +31,13 @@ func NewVirtualMachineInstanceMigration(client client.Client) *migration {
 	return &migration{Client: client}
 }
 
-func (m *migration) Has(key string) (bool, *v1.VirtualMachineInstanceMigration) {
+func (m *migration) Has(name string) (bool, *v1.VirtualMachineInstanceMigration) {
 	vmiml, err := m.List(&metav1.ListOptions{})
 	if err != nil {
 		return false, nil
 	}
 	for _, vmim := range vmiml.Items {
-		if key == vmim.Name {
+		if name == vmim.Status.VMI {
 			return true, &vmim
 		}
 	}
@@ -66,12 +64,11 @@ func (m *migration) List(opts *metav1.ListOptions) (*v1.VirtualMachineInstanceMi
 }
 
 func (m *migration) Create(migration *v1.VirtualMachineInstanceMigration, options *client.CreateOptions) (*v1.VirtualMachineInstanceMigration, error) {
-	var vmim = &v1.VirtualMachineInstanceMigration{}
 	err := m.Client.Create(context.Background(), migration, &client.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
-	return vmim, nil
+	return migration, nil
 }
 
 func (m *migration) Update(instanceMigration *v1.VirtualMachineInstanceMigration) (*v1.VirtualMachineInstanceMigration, error) {
@@ -83,21 +80,17 @@ func (m *migration) Update(instanceMigration *v1.VirtualMachineInstanceMigration
 	return nil, nil
 }
 
-func (m *migration) Delete(key string, options *client.DeleteOptions) error {
-	namespace, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		return err
-	}
+func (m *migration) Delete(name, namespace string, options *client.DeleteOptions) error {
+	//namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	//if err != nil {
+	//	return err
+	//}
 	c := &v1.VirtualMachineInstanceMigration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
 	}
-	//err := m.Client.Get(context.Background(), client.ObjectKey{Name: name}, migration)
-	//if err != nil {
-	//	return err
-	//}
 	return m.Client.Delete(context.Background(), c, client.PropagationPolicy(metav1.DeletePropagationBackground))
 }
 
@@ -107,8 +100,7 @@ func (m *migration) Patch(name string, pt types.PatchType, data []byte, subresou
 }
 
 func (m *migration) UpdateStatus(instanceMigration *v1.VirtualMachineInstanceMigration) (*v1.VirtualMachineInstanceMigration, error) {
-	//TODO implement me
-	panic("implement me")
+	return instanceMigration, m.Client.Status().Update(context.Background(), instanceMigration)
 }
 
 func (m *migration) PatchStatus(name string, pt types.PatchType, data []byte) (result *v1.VirtualMachineInstanceMigration, err error) {

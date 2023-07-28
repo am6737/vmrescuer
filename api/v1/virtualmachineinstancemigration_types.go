@@ -49,17 +49,13 @@ type VirtualMachineInstanceMigrationStatus struct {
 	// Important: Enable "make" to regenerate code after modifying this file
 	Name          string                               `json:"name,omitempty"`
 	Phase         VirtualMachineInstanceMigrationPhase `json:"phase,omitempty"`
+	VMI           string                               `json:"vmi,omitempty"`
 	Node          string                               `json:"node,omitempty"`
 	MigrationTime metav1.Time                          `json:"migration_time,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-
-//+kubebuilder:printcolumn:name="Foo",type="string",JSONPath=".spec.foo"
-//+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
-//+kubebuilder:printcolumn:name="Node",type="string",JSONPath=".status.node"
-//+kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 
 // VirtualMachineInstanceMigration is the Schema for the VirtualMachineInstanceMigrations API
 type VirtualMachineInstanceMigration struct {
@@ -78,6 +74,12 @@ type VirtualMachineInstanceMigrationList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []VirtualMachineInstanceMigration `json:"items"`
 }
+
+//+kubebuilder:printcolumn:name="Name",type="string",JSONPath=".metadata.generateName"
+//+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
+//+kubebuilder:printcolumn:name="VMI",type="string",JSONPath=".status.vmi"
+//+kubebuilder:printcolumn:name="Node",type="string",JSONPath=".status.node"
+//+kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 
 //+kubebuilder:rbac:groups=monitor.hitosea.com,resources=VirtualMachineInstanceMigrations,verbs=create;delete;get;list;patch;update;watch
 

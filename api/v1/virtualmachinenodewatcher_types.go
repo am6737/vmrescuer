@@ -49,7 +49,7 @@ type VirtualMachineNodeWatcher struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VirtualMachineNodeWatcherSpec   `json:"spec,omitempty"`
+	Spec   VirtualMachineNodeWatcherSpec   `json:"spec" valid:"required"`
 	Status VirtualMachineNodeWatcherStatus `json:"status,omitempty"`
 }
 

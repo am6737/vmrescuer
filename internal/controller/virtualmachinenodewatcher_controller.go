@@ -84,6 +84,7 @@ func NewVirtualMachineNodeWatcherReconciler(mgr ctrl.Manager) *VirtualMachineNod
 //+kubebuilder:rbac:groups=kubevirt.io,resources=virtualmachineinstances,verbs=get;list;watch
 //+kubebuilder:rbac:groups=kubevirt.io,resources=virtualmachineinstancemigrations,verbs=get;list
 //+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachineinstancerescues,verbs=create;delete;get;list;patch;update;watch
+//+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachineinstancerescues/status,verbs=get;update;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -148,7 +149,8 @@ func (r *VirtualMachineNodeWatcherReconciler) Reconcile(ctx context.Context, req
 		}
 
 	case vmnw.Spec.Enable:
-		r.Log.Info("Update synchronization threshold")
+		r.Log.Info(fmt.Sprintf("Update synchronization threshold to %s", r.interval))
+		r.recorder.Event(&monitorv1.VirtualMachineNodeWatcher{}, corev1.EventTypeNormal, "Update Threshold", fmt.Sprintf("Update synchronization threshold to %s", r.interval))
 		// 如果 Spec.Enable 为 true，并且之前已经启动 worker，则只重置定时器
 		r.ticker.Reset(r.interval)
 	}
@@ -178,7 +180,7 @@ func (r *VirtualMachineNodeWatcherReconciler) runWorker(ctx context.Context) {
 
 // syncQueue 方法用于同步虚拟机迁移队列 定时将迁移的虚拟机列表加入工作队列
 func (r *VirtualMachineNodeWatcherReconciler) syncQueue() {
-	defer r.recorder.Event(&monitorv1.VirtualMachineNodeWatcher{}, corev1.EventTypeNormal, "SyncComplete", "Sync of VirtualMachineMigrationQueue complete")
+	//defer r.recorder.Event(&monitorv1.VirtualMachineNodeWatcher{}, corev1.EventTypeNormal, "SyncComplete", "Sync of VirtualMachineMigrationQueue complete")
 	vimml, err := r.vmm.List(&metav1.ListOptions{})
 	if err != nil {
 		r.Log.Error(err, "Failed to obtain the list of VirtualMachineInstanceRescue resources")

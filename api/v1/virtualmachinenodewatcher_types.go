@@ -41,6 +41,7 @@ type VirtualMachineNodeWatcherStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=vmnw
 //+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
 //+kubebuilder:printcolumn:name="Interval",type="string",JSONPath=".spec.interval"
 

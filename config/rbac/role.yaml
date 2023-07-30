@@ -40,6 +40,18 @@ rules:
 - apiGroups:
   - monitor.hitosea.com
   resources:
+  - virtualmachineinstancerescues
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitor.hitosea.com
+  resources:
   - virtualmachinenodewatchers
   verbs:
   - create

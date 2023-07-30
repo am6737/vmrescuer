@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	virt "kubevirt.io/api/core/v1"
@@ -73,7 +72,7 @@ func (n *NodeWatcher) GetPodByVMI(ctx context.Context, vmi *virt.VirtualMachineI
 		for _, condition := range pod.Status.Conditions {
 			// 检查 Pod 的状态是否处于排除的状态
 			if pod.Status.Phase == corev1.PodPending || condition.Type == corev1.PodInitialized || strings.HasPrefix(pod.Status.Message, "Init") {
-				fmt.Println("容器处于状态 ", pod.Status, "type ", condition.Type)
+				continue
 			}
 			if condition.Type == "Ready" && condition.Status == "False" {
 				// 创建一个新的 Pod 对象并将其指针添加到 candidatePods 切片

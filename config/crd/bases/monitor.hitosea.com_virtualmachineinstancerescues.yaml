@@ -5,29 +5,35 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: virtualmachinenodewatchers.monitor.hitosea.com
+  name: virtualmachineinstancerescues.monitor.hitosea.com
 spec:
   group: monitor.hitosea.com
   names:
-    kind: VirtualMachineNodeWatcher
-    listKind: VirtualMachineNodeWatcherList
-    plural: virtualmachinenodewatchers
+    kind: VirtualMachineInstanceRescue
+    listKind: VirtualMachineInstanceRescueList
+    plural: virtualmachineinstancerescues
     shortNames:
-    - vmnw
-    singular: virtualmachinenodewatcher
+    - vmir
+    singular: virtualmachineinstancerescue
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
     - jsonPath: .status.phase
       name: Phase
       type: string
-    - jsonPath: .spec.interval
-      name: Interval
+    - jsonPath: .status.vmi
+      name: VMI
       type: string
+    - jsonPath: .status.node
+      name: Node
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
     name: v1
     schema:
       openAPIV3Schema:
-        description: VirtualMachineNodeWatcher is the Schema for the virtualmachinenodewatchers
+        description: VirtualMachineInstanceRescue is the Schema for the virtualmachineinstancerescues
           API
         properties:
           apiVersion:
@@ -43,28 +49,31 @@ spec:
           metadata:
             type: object
           spec:
-            description: VirtualMachineNodeWatcherSpec defines the desired state of
-              VirtualMachineNodeWatcher
+            description: VirtualMachineInstanceRescueSpec defines the desired state
+              of VirtualMachineInstanceRescue
             properties:
-              enable:
-                type: boolean
-              interval:
+              foo:
+                description: Foo is an example field of VirtualMachineInstanceRescue.
+                  Edit virtualmachineinstancerescue_types.go to remove/update
                 type: string
             type: object
           status:
-            description: VirtualMachineNodeWatcherStatus defines the observed state
-              of VirtualMachineNodeWatcher
+            description: VirtualMachineInstanceRescueStatus defines the observed state
+              of VirtualMachineInstanceRescue
             properties:
+              migration_time:
+                format: date-time
+                type: string
+              node:
+                type: string
               phase:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                  of cluster Important: Enable "make" to regenerate code after modifying
+                  of cluster Important: Run "make" to regenerate code after modifying
                   this file'
                 type: string
-            required:
-            - phase
+              vmi:
+                type: string
             type: object
-        required:
-        - spec
         type: object
     served: true
     storage: true

@@ -3,4 +3,5 @@ resources:
 - monitor_v1_virtualmachinenodewatcher.yaml
 - monitor_v1_virtualmachinemigration.yaml
 - monitor_v1_virtualmachineinstancemigration.yaml
+- monitor_v1_virtualmachineinstancerescue.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

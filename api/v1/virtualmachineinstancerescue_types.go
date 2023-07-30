@@ -23,12 +23,12 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// VirtualMachineInstanceMigrationSpec defines the desired state of VirtualMachineInstanceMigration
-type VirtualMachineInstanceMigrationSpec struct {
+// VirtualMachineInstanceRescueSpec defines the desired state of VirtualMachineInstanceRescue
+type VirtualMachineInstanceRescueSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Enable "make" to regenerate code after modifying this file
+	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of VirtualMachineInstanceMigration. Edit VirtualMachineInstanceMigration_types.go to remove/update
+	// Foo is an example field of VirtualMachineInstanceRescue. Edit virtualmachineinstancerescue_types.go to remove/update
 	Foo string `json:"foo,omitempty"`
 }
 
@@ -43,11 +43,10 @@ const (
 	MigrationCancel    VirtualMachineInstanceMigrationPhase = "Cancel"
 )
 
-// VirtualMachineInstanceMigrationStatus defines the observed state of VirtualMachineInstanceMigration
-type VirtualMachineInstanceMigrationStatus struct {
+// VirtualMachineInstanceRescueStatus defines the observed state of VirtualMachineInstanceRescue
+type VirtualMachineInstanceRescueStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Enable "make" to regenerate code after modifying this file
-	Name          string                               `json:"name,omitempty"`
+	// Important: Run "make" to regenerate code after modifying this file
 	Phase         VirtualMachineInstanceMigrationPhase `json:"phase,omitempty"`
 	VMI           string                               `json:"vmi,omitempty"`
 	Node          string                               `json:"node,omitempty"`
@@ -56,33 +55,30 @@ type VirtualMachineInstanceMigrationStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-
-// VirtualMachineInstanceMigration is the Schema for the VirtualMachineInstanceMigrations API
-type VirtualMachineInstanceMigration struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   VirtualMachineInstanceMigrationSpec   `json:"spec,omitempty"`
-	Status VirtualMachineInstanceMigrationStatus `json:"status,omitempty"`
-}
-
-//+kubebuilder:object:root=true
-
-// VirtualMachineInstanceMigrationList contains a list of VirtualMachineInstanceMigration
-type VirtualMachineInstanceMigrationList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VirtualMachineInstanceMigration `json:"items"`
-}
-
-//+kubebuilder:printcolumn:name="Name",type="string",JSONPath=".metadata.generateName"
+//+kubebuilder:resource:shortName=vmir
 //+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
 //+kubebuilder:printcolumn:name="VMI",type="string",JSONPath=".status.vmi"
 //+kubebuilder:printcolumn:name="Node",type="string",JSONPath=".status.node"
 //+kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 
-//+kubebuilder:rbac:groups=monitor.hitosea.com,resources=VirtualMachineInstanceMigrations,verbs=create;delete;get;list;patch;update;watch
+// VirtualMachineInstanceRescue is the Schema for the virtualmachineinstancerescues API
+type VirtualMachineInstanceRescue struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   VirtualMachineInstanceRescueSpec   `json:"spec,omitempty"`
+	Status VirtualMachineInstanceRescueStatus `json:"status,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+
+// VirtualMachineInstanceRescueList contains a list of VirtualMachineInstanceRescue
+type VirtualMachineInstanceRescueList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []VirtualMachineInstanceRescue `json:"items"`
+}
 
 func init() {
-	SchemeBuilder.Register(&VirtualMachineInstanceMigration{}, &VirtualMachineInstanceMigrationList{})
+	SchemeBuilder.Register(&VirtualMachineInstanceRescue{}, &VirtualMachineInstanceRescueList{})
 }

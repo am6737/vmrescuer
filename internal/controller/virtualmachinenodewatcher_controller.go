@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"time"
+
 	monitorv1 "vmrescuer/api/v1"
 )
 
@@ -45,7 +46,7 @@ type VirtualMachineNodeWatcherReconciler struct {
 	workqueue workqueue.RateLimitingInterface
 
 	vm   VirtualMachineInterface
-	vmm  VirtualMachineInstanceMigrationInterface
+	vmm  VirtualMachineInstanceRescueInterface
 	node NodeWatcherInterface
 
 	ctx      context.Context
@@ -69,8 +70,6 @@ func NewVirtualMachineNodeWatcherReconciler(mgr ctrl.Manager) *VirtualMachineNod
 		vm:              NewDefaultVirtualMachine(),
 		vmm:             NewVirtualMachineInstanceMigration(mgr.GetClient()),
 		node:            NewNodeWatcher(mgr.GetClient()),
-		ticker:          time.NewTicker(1 * time.Minute),
-		interval:        5,
 		ctx:             ctx,
 		cancel:          cancel,
 		runWorkerStopCh: make(chan struct{}),
@@ -84,6 +83,8 @@ func NewVirtualMachineNodeWatcherReconciler(mgr ctrl.Manager) *VirtualMachineNod
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete
 //+kubebuilder:rbac:groups=kubevirt.io,resources=virtualmachineinstances,verbs=get;list;watch
 //+kubebuilder:rbac:groups=kubevirt.io,resources=virtualmachineinstancemigrations,verbs=get;list
+//+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachineinstancerescues,verbs=create;delete;get;list;patch;update;watch
+//+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachineinstancerescues/status,verbs=get;update;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -102,39 +103,56 @@ func (r *VirtualMachineNodeWatcherReconciler) Reconcile(ctx context.Context, req
 		return ctrl.Result{}, err
 	}
 
-	interval, err := time.ParseDuration(vmnw.Spec.Interval)
-	if err != nil {
-		log.Error(err, "failed to parse interval")
-		return ctrl.Result{}, fmt.Errorf("failed to parse interval: %v", err)
-	}
-
-	r.interval = interval
-	// 处理对象创建和更新时的逻辑
-	if vmnw.ObjectMeta.DeletionTimestamp.IsZero() {
-		if vmnw.Spec.Enable && !r.run {
-			// 如果 Spec.Enable 为 true，并且之前未启动 worker
-			if r.ticker != nil {
-				r.ticker.Reset(r.interval)
-			} else {
-				r.ticker = time.NewTicker(r.interval)
-			}
-			r.run = true
-			go r.runWorker(r.ctx)
-		} else if !vmnw.Spec.Enable && r.run {
-			// 如果 Spec.Enable 为 false，并且之前正在运行 worker
-			r.run = false
-			r.runWorkerStopCh <- struct{}{}
-			r.ticker.Stop()
-		} else if vmnw.Spec.Enable {
-			// 如果 Spec.Enable 为 true，并且之前已经启动 worker，则只重置定时器
-			r.ticker.Reset(r.interval)
-		}
-	} else {
+	if !vmnw.ObjectMeta.DeletionTimestamp.IsZero() {
 		r.run = false
 		r.runWorkerStopCh <- struct{}{}
 		if r.ticker != nil {
 			r.ticker.Stop()
 		}
+		return ctrl.Result{}, nil
+	}
+
+	interval, err := time.ParseDuration(vmnw.Spec.Interval)
+	if err != nil {
+		log.Error(err, "failed to parse interval")
+		return ctrl.Result{}, fmt.Errorf("failed to parse interval: %v", err)
+	}
+	r.interval = interval
+
+	switch {
+	case vmnw.Spec.Enable && !r.run:
+		// 如果 Spec.Enable 为 true，并且之前未启动 worker
+		if r.ticker != nil {
+			r.ticker.Reset(r.interval)
+		} else {
+			r.ticker = time.NewTicker(r.interval)
+		}
+		r.run = true
+		go r.runWorker(r.ctx)
+		vmnw.Status.Phase = "Running"
+		err := r.Status().Update(ctx, vmnw)
+		if err != nil {
+			log.Error(err, "Update resource status")
+			return ctrl.Result{}, err
+		}
+
+	case !vmnw.Spec.Enable && r.run:
+		// 如果 Spec.Enable 为 false，并且之前正在运行 worker
+		r.run = false
+		r.runWorkerStopCh <- struct{}{}
+		r.ticker.Stop()
+		vmnw.Status.Phase = "Stopped"
+		err := r.Status().Update(ctx, vmnw)
+		if err != nil {
+			log.Error(err, "Update resource status")
+			return ctrl.Result{}, err
+		}
+
+	case vmnw.Spec.Enable:
+		r.Log.Info(fmt.Sprintf("Update synchronization threshold to %s", r.interval))
+		r.recorder.Event(&monitorv1.VirtualMachineNodeWatcher{}, corev1.EventTypeNormal, "Update Threshold", fmt.Sprintf("Update synchronization threshold to %s", r.interval))
+		// 如果 Spec.Enable 为 true，并且之前已经启动 worker，则只重置定时器
+		r.ticker.Reset(r.interval)
 	}
 
 	return ctrl.Result{}, nil
@@ -148,10 +166,10 @@ func (r *VirtualMachineNodeWatcherReconciler) runWorker(ctx context.Context) {
 			case <-r.ticker.C:
 				r.syncQueue()
 			case <-r.runWorkerStopCh:
-				r.Log.Info("Close Channel Signal Received End runWorker")
+				r.Log.Info("Close channel signal received end runWorker")
 				return
 			case <-r.ctx.Done():
-				r.Log.Info("Context canceled Stop runWorker")
+				r.Log.Info("Context canceled stop runWorker")
 				return
 			}
 		}
@@ -162,47 +180,76 @@ func (r *VirtualMachineNodeWatcherReconciler) runWorker(ctx context.Context) {
 
 // syncQueue 方法用于同步虚拟机迁移队列 定时将迁移的虚拟机列表加入工作队列
 func (r *VirtualMachineNodeWatcherReconciler) syncQueue() {
-	defer r.recorder.Event(&monitorv1.VirtualMachineNodeWatcher{}, corev1.EventTypeNormal, "SyncComplete", "Sync of virtual machine migration queue complete")
-
+	//defer r.recorder.Event(&monitorv1.VirtualMachineNodeWatcher{}, corev1.EventTypeNormal, "SyncComplete", "Sync of VirtualMachineMigrationQueue complete")
 	vimml, err := r.vmm.List(&metav1.ListOptions{})
 	if err != nil {
-		r.Log.Error(err, "Failed to obtain the list of VirtualMachineInstanceMigration resources")
+		r.Log.Error(err, "Failed to obtain the list of VirtualMachineInstanceRescue resources")
 		return
 	}
 
 	for _, vimm := range vimml.Items {
-		vimm.Status.Phase = monitorv1.MigrationQueuing
-		r.workqueue.Add(vimm.Name)
+		if vimm.Status.Phase != monitorv1.MigrationQueuing {
+			continue
+		}
+		key := fmt.Sprintf("%s/%s", vimm.Namespace, vimm.Name)
+		r.workqueue.Add(key)
 	}
 }
 
 // addMigration 向虚拟机迁移列表中添加新的虚拟机
 func (r *VirtualMachineNodeWatcherReconciler) addMigration(name string, mvm *migration, node string) {
-	// 命名空间加上虚拟机名称作为创建VirtualMachineInstanceMigration资源的名称
-	key := fmt.Sprintf("%s/%s", mvm.VMI.Namespace, name)
+	key := fmt.Sprintf("%s-%s", mvm.VMI.Namespace, name)
 
-	// 检测是否已经存在迁移的列表中
-	if vmim, err := r.vmm.Get(mvm.Name, &metav1.GetOptions{}); vmim != nil && err != nil {
+	ok, err := r.vm.IsMigrating(context.Background(), name, mvm.VMI.Namespace)
+	if err != nil {
+		r.Log.Error(err, "Get VirtualMachine migration status")
+		return
+	}
+	if ok {
 		return
 	}
 
-	newVmim := &monitorv1.VirtualMachineInstanceMigration{
+	// 检查虚拟机是否满足加入迁移队列的条件
+	if _, ok := r.vmm.IsEligible(name); !ok {
+		return
+	}
+
+	// 查找运行虚拟机的Pod，如果不存在或者状态为PodPending，认为虚拟机迁移任务已成功，在等待kubevirt重新创建Pod。
+	// 目前使用的是强制删除Pod来使kubevirt重新创建从而实现虚拟机迁移，暂时无法追踪重新创建的Pod是否是上次迁移任务删除后创建的
+	pod, err := r.node.GetPodByVMI(context.Background(), &mvm.VMI)
+	if err != nil {
+		r.Log.Error(err, "Get pod information")
+		return
+	}
+	if pod == nil {
+		return
+	}
+
+	newVmim := &monitorv1.VirtualMachineInstanceRescue{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      key,
-			Namespace: mvm.VMI.Namespace,
+			GenerateName: "vmrescuer-",
+			Namespace:    mvm.VMI.Namespace,
 		},
-		Status: monitorv1.VirtualMachineInstanceMigrationStatus{
-			Name:          mvm.VMI.Name,
+		Status: monitorv1.VirtualMachineInstanceRescueStatus{
+			VMI:           mvm.VMI.Name,
 			Phase:         monitorv1.MigrationPending,
 			Node:          node,
 			MigrationTime: metav1.Now(),
 		},
 	}
-	if _, err := r.vmm.Create(newVmim, &metav1.CreateOptions{}); err != nil {
-		r.Log.Error(err, "Create migration Resources")
+	if _, err := r.vmm.Create(newVmim, &client.CreateOptions{}); err != nil {
+		r.Log.Error(err, "Create migration resources")
 		return
 	}
-	r.Log.Info(fmt.Sprintf("Add a VirtualMachineInstance %s In Migration Queue", key))
+
+	newVmim.Status.Phase = monitorv1.MigrationQueuing
+	newVmim.Status.VMI = mvm.VMI.Name
+	newVmim.Status.Node = node
+	if _, err := r.vmm.UpdateStatus(newVmim); err != nil {
+		r.Log.Error(err, "Failed to update queue information")
+	}
+
+	r.Log.Info(fmt.Sprintf("Add VirtualMachineInstance %s in migration queue", key))
 }
 
 func (r *VirtualMachineNodeWatcherReconciler) processQueue(ctx context.Context) bool {
@@ -239,12 +286,10 @@ func (r *VirtualMachineNodeWatcherReconciler) processQueue(ctx context.Context) 
 		if err := r.syncHandler(ctx, key); err != nil {
 			r.Log.Error(err, fmt.Sprintf("VirtualMachineInstance %s migration failed and rejoined the migration queue", key))
 			// Put the item back on the workqueue to handle any transient errors.
-			r.workqueue.AddRateLimited(key)
+			//r.workqueue.AddRateLimited(key)
 			r.workqueue.Forget(obj)
-			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
+			return fmt.Errorf("error syncing %s: %s, requeuing", key, err.Error())
 		}
-		// 更新VirtualMachineInstanceMigration资源状态为完成
-		//r.vmm.UpdateStatus()
 		// Finally, if no error occurs we Forget this item, so it does not
 		// get queued again until another change happens.
 		r.workqueue.Forget(obj)
@@ -262,30 +307,30 @@ func (r *VirtualMachineNodeWatcherReconciler) processQueue(ctx context.Context) 
 
 func (r *VirtualMachineNodeWatcherReconciler) syncHandler(ctx context.Context, key string) error {
 
-	vmim, err := r.vmm.Get(key, &metav1.GetOptions{})
-	if err != nil {
-		r.Log.Error(err, "Failed to obtain VirtualMachineInstanceMigration resource")
-		return err
-	}
-
-	if vmim.Status.Phase == monitorv1.MigrationCancel {
-		r.Log.Info(fmt.Sprintf("VirtualMachineInstanceMigration %s Canceled", key))
-		return nil
-	}
-
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return err
 	}
 
+	res, err := r.vmm.Get(name, namespace, &client.GetOptions{})
+	if err != nil {
+		r.Log.Error(err, "Failed to obtain VirtualMachineInstanceRescue resource")
+		return err
+	}
+
+	if res.Status.Phase == monitorv1.MigrationCancel {
+		r.Log.Info(fmt.Sprintf("VirtualMachineInstanceRescue %s Canceled", key))
+		return nil
+	}
+
 	// 根据 Namespace 和 Name 获取虚拟机实例对象
-	vmi, err := r.vm.Get(ctx, namespace, name)
+	vmi, err := r.vm.Get(ctx, namespace, res.Status.VMI)
 	if err != nil {
 		return err
 	}
 
 	// 检查虚拟机是否正在迁移
-	isMigrating, err := r.vm.IsMigrating(ctx, vmi)
+	isMigrating, err := r.vm.IsMigrating(ctx, vmi.Name, vmi.Namespace)
 	if err != nil {
 		return err
 	}
@@ -293,28 +338,36 @@ func (r *VirtualMachineNodeWatcherReconciler) syncHandler(ctx context.Context, k
 	// 如果虚拟机正在迁移，则不进行迁移操作，直接返回
 	if isMigrating {
 		r.Log.Info(fmt.Sprintf("VMI %s is Migrating", vmi.Name))
+		res.Status.Phase = monitorv1.MigrationSucceeded
+		_, err = r.vmm.UpdateStatus(res)
+		if err != nil {
+			r.Log.Error(err, "Failed to update VirtualMachineInstanceRescue status")
+		}
 		return nil
 	}
 
-	// 使用删除pod来替代使用kubevirt客户端的迁移
-	// 执行虚拟机实例迁移
+	// 执行虚拟机实例迁移 使用删除pod来替代使用kubevirt客户端的迁移
 	ok, err := r.node.Migrate(ctx, vmi)
 	if err != nil {
 		return err
 	}
-	if ok {
-		r.Log.Info(fmt.Sprintf("Start VirtualMachine migration Name:%s Namespace:%s Phase:%s Node:%s",
-			vmi.Name,
-			vmi.Namespace,
-			vmi.Status.Phase,
-			vmi.Status.NodeName,
-		))
+	if !ok {
+		r.Log.Info(fmt.Sprintf("VirtualMachine %s migration failed", vmi.Name))
+		return nil
 	}
 
-	//// 使用kubevirt客户端执行虚拟机实例迁移
-	//if err = r.vm.Migrate(ctx, vmi.Name, namespace); err != nil {
+	// 使用kubevirt客户端执行虚拟机实例迁移
+	//if err = r.vm.Migrate(context.Background(), vmi.Name, namespace); err != nil {
 	//	return err
 	//}
+
+	res.Status.Phase = monitorv1.MigrationSucceeded
+	_, err = r.vmm.UpdateStatus(res)
+	if err != nil {
+		r.Log.Error(err, "Failed to update VirtualMachineInstanceRescue status")
+	}
+
+	r.Log.Info("Start VirtualMachineMigration", "vmi", vmi.Name, "namespace", vmi.Namespace, "node", vmi.Status.NodeName)
 
 	// 返回 nil 表示启动迁移成功
 	return nil
@@ -394,9 +447,9 @@ func (r *VirtualMachineNodeWatcherReconciler) syncVMToMigrate(ctx context.Contex
 	// 对于每个虚拟机实例 vmi，我们首先调用 r.vm.IsMigrating 方法来检查虚拟机是否正在进行迁移。
 	// 如果虚拟机没有在进行迁移并且可以进行迁移（即满足迁移条件），则调用 r.addMigration 方法将虚拟机添加到迁移队列中，以进行后续的迁移操作。
 	for _, vmi := range UnhealthyVMIS {
-		ok, err := r.vm.IsMigrating(ctx, &vmi)
+		ok, err := r.vm.IsMigrating(ctx, vmi.Name, vmi.Namespace)
 		if err != nil {
-			r.Log.Error(err, "r.vm.IsMigrating")
+			r.Log.Error(err, "Get Virtual Machine Migration Status")
 			continue
 		}
 		if !ok && vmi.IsMigratable() {
@@ -424,21 +477,22 @@ func (r *VirtualMachineNodeWatcherReconciler) nodeUpdateHandler(e event.UpdateEv
 		return
 	}
 
+	// 如果节点恢复健康状态了将迁移队列里有关节点的虚拟机的迁移任务状态设置为取消
 	if r.node.IsNodeReady(newNode) {
-		// 如果节点恢复健康状态了将迁移队列里有关节点的虚拟机删除
 		vmiml, err := r.vmm.List(&metav1.ListOptions{})
 		if err != nil {
-			r.Log.Error(err, "Failed to obtain the list of VirtualMachineInstanceMigration resources")
+			r.Log.Error(err, "Failed to obtain the list of VirtualMachineInstanceRescue resources")
 			return
 		}
+
 		for _, vmim := range vmiml.Items {
-			if vmim.Status.Node == newNode.Name {
+			if vmim.Status.Node == newNode.Name && (vmim.Status.Phase == monitorv1.MigrationQueuing || vmim.Status.Phase == monitorv1.MigrationRunning) {
 				vmim.Status.Phase = monitorv1.MigrationCancel
 				if _, err := r.vmm.UpdateStatus(&vmim); err != nil {
-					r.Log.Error(err, "Failed to update VirtualMachineInstanceMigration resource")
-					return
+					r.Log.Error(err, "Failed to update VirtualMachineInstanceRescue resource")
+					continue
 				}
-				r.Log.Info(fmt.Sprintf("Node Recovery Removed %s From migration Queue", vmim.Name))
+				r.Log.Info(fmt.Sprintf("Node recovery removed %s from migration queue", vmim.Status.VMI))
 			}
 		}
 	}

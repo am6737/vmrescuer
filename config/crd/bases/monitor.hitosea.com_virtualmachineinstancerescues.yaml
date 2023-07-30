@@ -5,37 +5,35 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: virtualmachinemigrations.monitor.hitosea.com
+  name: virtualmachineinstancerescues.monitor.hitosea.com
 spec:
   group: monitor.hitosea.com
   names:
-    kind: VirtualMachineMigration
-    listKind: VirtualMachineMigrationList
-    plural: virtualmachinemigrations
-    singular: virtualmachinemigration
+    kind: VirtualMachineInstanceRescue
+    listKind: VirtualMachineInstanceRescueList
+    plural: virtualmachineinstancerescues
+    shortNames:
+    - vmir
+    singular: virtualmachineinstancerescue
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - description: The schedule in Cron format
-      jsonPath: .status.name
-      name: Name
+    - jsonPath: .status.phase
+      name: Phase
       type: string
-    - jsonPath: .status.status
-      name: Status
+    - jsonPath: .status.vmi
+      name: VMI
       type: string
     - jsonPath: .status.node
       name: Node
       type: string
-    - jsonPath: .status.migrationTime
-      name: MigrationTime
-      type: date
     - jsonPath: .metadata.creationTimestamp
       name: AGE
       type: date
     name: v1
     schema:
       openAPIV3Schema:
-        description: VirtualMachineMigration is the Schema for the virtualmachinemigrations
+        description: VirtualMachineInstanceRescue is the Schema for the virtualmachineinstancerescues
           API
         properties:
           apiVersion:
@@ -51,29 +49,29 @@ spec:
           metadata:
             type: object
           spec:
-            description: VirtualMachineMigrationSpec defines the desired state of
-              VirtualMachineMigration
+            description: VirtualMachineInstanceRescueSpec defines the desired state
+              of VirtualMachineInstanceRescue
             properties:
               foo:
-                description: Foo is an example field of VirtualMachineMigration. Edit
-                  virtualmachinemigration_types.go to remove/update
+                description: Foo is an example field of VirtualMachineInstanceRescue.
+                  Edit virtualmachineinstancerescue_types.go to remove/update
                 type: string
             type: object
           status:
-            description: VirtualMachineMigrationStatus defines the observed state
-              of VirtualMachineMigration
+            description: VirtualMachineInstanceRescueStatus defines the observed state
+              of VirtualMachineInstanceRescue
             properties:
               migration_time:
                 format: date-time
                 type: string
-              name:
-                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                  of cluster Important: Enable "make" to regenerate code after modifying
-                  this file'
-                type: string
               node:
                 type: string
-              status:
+              phase:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster Important: Run "make" to regenerate code after modifying
+                  this file'
+                type: string
+              vmi:
                 type: string
             type: object
         type: object

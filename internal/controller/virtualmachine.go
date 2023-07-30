@@ -14,7 +14,7 @@ type VirtualMachineInterface interface {
 	List(ctx context.Context) (*virtv1.VirtualMachineInstanceList, error)
 	IsMigrate(ctx context.Context, vmi *virtv1.VirtualMachineInstance) bool
 	Migrate(ctx context.Context, name, namespace string) error
-	IsMigrating(ctx context.Context, vmi *virtv1.VirtualMachineInstance) (bool, error)
+	IsMigrating(ctx context.Context, name, namespace string) (bool, error)
 }
 
 type Option func(*VirtualMachine)
@@ -67,13 +67,13 @@ func (v *VirtualMachine) Migrate(ctx context.Context, name, namespace string) er
 }
 
 // IsMigrating 检查给定的 VirtualMachineInstance 是否正在进行迁移
-func (v *VirtualMachine) IsMigrating(ctx context.Context, vmi *virtv1.VirtualMachineInstance) (bool, error) {
+func (v *VirtualMachine) IsMigrating(ctx context.Context, name, namespace string) (bool, error) {
 	migrationList, err := v.virtClient.VirtualMachineInstanceMigration(metav1.NamespaceAll).List(&metav1.ListOptions{})
 	if err != nil {
 		return false, err
 	}
 	for _, migration := range migrationList.Items {
-		if migration.Spec.VMIName == vmi.Name && migration.Namespace == vmi.Namespace {
+		if migration.Spec.VMIName == name && migration.Namespace == namespace {
 			if migration.Status.Phase != virtv1.MigrationFailed && migration.Status.Phase != virtv1.MigrationSucceeded {
 				return true, nil
 			}

@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	virt "kubevirt.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 // NodeWatcherInterface 定义节点相关的操作接口
@@ -69,6 +70,10 @@ func (n *NodeWatcher) GetPodByVMI(ctx context.Context, vmi *virt.VirtualMachineI
 	var candidatePods []*corev1.Pod
 	for _, pod := range podList.Items {
 		for _, condition := range pod.Status.Conditions {
+			// 检查 Pod 的状态是否处于排除的状态
+			if pod.Status.Phase == corev1.PodPending || condition.Type == corev1.PodInitialized || strings.HasPrefix(pod.Status.Message, "Init") {
+				continue
+			}
 			if condition.Type == "Ready" && condition.Status == "False" {
 				// 创建一个新的 Pod 对象并将其指针添加到 candidatePods 切片
 				candidatePod := pod.DeepCopy()

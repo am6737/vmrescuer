@@ -12,6 +12,8 @@ spec:
     kind: VirtualMachineNodeWatcher
     listKind: VirtualMachineNodeWatcherList
     plural: virtualmachinenodewatchers
+    shortNames:
+    - vmnw
     singular: virtualmachinenodewatcher
   scope: Namespaced
   versions:
@@ -61,6 +63,8 @@ spec:
             required:
             - phase
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

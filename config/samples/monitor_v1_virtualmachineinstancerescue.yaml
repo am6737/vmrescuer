@@ -1,12 +1,12 @@
 apiVersion: monitor.hitosea.com/v1
-kind: VirtualMachineMigration
+kind: VirtualMachineInstanceRescue
 metadata:
   labels:
-    app.kubernetes.io/name: virtualmachinemigration
-    app.kubernetes.io/instance: virtualmachinemigration-sample
+    app.kubernetes.io/name: virtualmachineinstancerescue
+    app.kubernetes.io/instance: virtualmachineinstancerescue-sample
     app.kubernetes.io/part-of: vmrescuer
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: vmrescuer
-  name: virtualmachinemigration-sample
+  name: virtualmachineinstancerescue-sample
 spec:
   # TODO(user): Add fields here

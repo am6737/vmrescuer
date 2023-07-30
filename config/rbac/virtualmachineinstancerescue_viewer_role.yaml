@@ -1,31 +1,27 @@
-# permissions for end users to edit virtualmachinemigrations.
+# permissions for end users to view virtualmachineinstancerescues.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: virtualmachinemigration-editor-role
+    app.kubernetes.io/instance: virtualmachineinstancerescue-viewer-role
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: vmrescuer
     app.kubernetes.io/part-of: vmrescuer
     app.kubernetes.io/managed-by: kustomize
-  name: virtualmachinemigration-editor-role
+  name: virtualmachineinstancerescue-viewer-role
 rules:
 - apiGroups:
   - monitor.hitosea.com
   resources:
-  - virtualmachinemigrations
+  - virtualmachineinstancerescues
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - monitor.hitosea.com
   resources:
-  - virtualmachinemigrations/status
+  - virtualmachineinstancerescues/status
   verbs:
   - get

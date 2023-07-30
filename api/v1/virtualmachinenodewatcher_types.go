@@ -41,15 +41,16 @@ type VirtualMachineNodeWatcherStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
-// +kubebuilder:printcolumn:name="Interval",type="string",JSONPath=".spec.interval"
+// +kubebuilder:resource:shortName=vmnw
+//+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
+//+kubebuilder:printcolumn:name="Interval",type="string",JSONPath=".spec.interval"
 
 // VirtualMachineNodeWatcher is the Schema for the virtualmachinenodewatchers API
 type VirtualMachineNodeWatcher struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VirtualMachineNodeWatcherSpec   `json:"spec,omitempty"`
+	Spec   VirtualMachineNodeWatcherSpec   `json:"spec" valid:"required"`
 	Status VirtualMachineNodeWatcherStatus `json:"status,omitempty"`
 }
 

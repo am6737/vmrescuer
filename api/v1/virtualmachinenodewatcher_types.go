@@ -28,8 +28,11 @@ type VirtualMachineNodeWatcherSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Enable "make" to regenerate code after modifying this file
 
+	// Interval  Migration Time Threshold
 	Interval string `json:"interval,omitempty"`
-	Enable   bool   `json:"enable,omitempty"`
+	// Clean Timed cleaning of VirtualMachineInstanceRescue time
+	Clean  string `json:"clean,omitempty"`
+	Enable bool   `json:"enable,omitempty"`
 }
 
 // VirtualMachineNodeWatcherStatus defines the observed state of VirtualMachineNodeWatcher

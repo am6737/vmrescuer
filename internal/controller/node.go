@@ -2,11 +2,16 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/util/workqueue"
 	virt "kubevirt.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"strings"
+	monitorv1 "vmrescuer/api/v1"
 )
 
 // NodeWatcherInterface 定义节点相关的操作接口
@@ -39,10 +44,7 @@ func (n *NodeWatcher) Migrate(ctx context.Context, vmi *virt.VirtualMachineInsta
 
 func (n *NodeWatcher) DeletePod(ctx context.Context, pod *corev1.Pod) error {
 	// 强制删除pod实现迁移虚拟机的效果
-	if err := n.Delete(ctx, pod, client.GracePeriodSeconds(0)); err != nil {
-		return err
-	}
-	return nil
+	return n.Delete(ctx, pod, client.GracePeriodSeconds(0))
 }
 
 func NewNodeWatcher(client client.Client) *NodeWatcher {
@@ -95,4 +97,43 @@ func (n *NodeWatcher) GetPodByVMI(ctx context.Context, vmi *virt.VirtualMachineI
 
 func (n *NodeWatcher) Recovered() {
 
+}
+
+func (r *VirtualMachineNodeWatcherReconciler) nodeUpdateHandler(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
+	//_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	//defer cancel()
+
+	if !r.run {
+		return
+	}
+
+	newNode, ok := e.ObjectNew.(*corev1.Node)
+	if !ok {
+		fmt.Println(fmt.Errorf("unexpected object type for new object: %T", e.ObjectNew), "failed to get new node object")
+		return
+	}
+
+	// 如果节点恢复健康状态了将迁移队列里有关节点的虚拟机的迁移任务状态设置为取消
+	if r.node.IsNodeReady(newNode) {
+		vmiml, err := r.vmm.List(&metav1.ListOptions{})
+		if err != nil {
+			r.Log.Error(err, "Failed to obtain the list of VirtualMachineInstanceRescue resources")
+			return
+		}
+
+		for _, vmim := range vmiml.Items {
+			if vmim.Spec.Node == newNode.Name && (vmim.Status.Phase == monitorv1.MigrationQueuing || vmim.Status.Phase == monitorv1.MigrationRunning) {
+				vmim.Status.Phase = monitorv1.MigrationCancel
+				if _, err := r.vmm.UpdateStatus(&vmim); err != nil {
+					r.Log.Error(err, "Failed to update VirtualMachineInstanceRescue resource")
+					continue
+				}
+				r.Log.Info(fmt.Sprintf("Node recovery removed %s from migration queue", vmim.Spec.VMI))
+			}
+		}
+	}
+
+	if err := r.syncVMToMigrate(r.ctx); err != nil {
+		r.Log.Error(err, "Unable to obtain the list of virtual machines to migrate")
+	}
 }

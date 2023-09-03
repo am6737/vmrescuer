@@ -28,8 +28,8 @@ type VirtualMachineInstanceRescueSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of VirtualMachineInstanceRescue. Edit virtualmachineinstancerescue_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	VMI  string `json:"vmi,omitempty"`
+	Node string `json:"node,omitempty"`
 }
 
 type VirtualMachineInstanceMigrationPhase string
@@ -48,8 +48,6 @@ type VirtualMachineInstanceRescueStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	Phase         VirtualMachineInstanceMigrationPhase `json:"phase,omitempty"`
-	VMI           string                               `json:"vmi,omitempty"`
-	Node          string                               `json:"node,omitempty"`
 	MigrationTime metav1.Time                          `json:"migration_time,omitempty"`
 }
 
@@ -57,8 +55,8 @@ type VirtualMachineInstanceRescueStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=vmir
 //+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
-//+kubebuilder:printcolumn:name="VMI",type="string",JSONPath=".status.vmi"
-//+kubebuilder:printcolumn:name="Node",type="string",JSONPath=".status.node"
+//+kubebuilder:printcolumn:name="VMI",type="string",JSONPath=".spec.vmi"
+//+kubebuilder:printcolumn:name="Node",type="string",JSONPath=".spec.node"
 //+kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 
 // VirtualMachineInstanceRescue is the Schema for the virtualmachineinstancerescues API

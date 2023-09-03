@@ -10,4 +10,5 @@ metadata:
   name: virtualmachinenodewatcher-sample
 spec:
   interval: 3m
+  clean: 168h
   enable: true

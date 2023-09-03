@@ -46,9 +46,14 @@ spec:
             description: VirtualMachineNodeWatcherSpec defines the desired state of
               VirtualMachineNodeWatcher
             properties:
+              clean:
+                description: Clean Timed cleaning of VirtualMachineInstanceRescue
+                  time
+                type: string
               enable:
                 type: boolean
               interval:
+                description: Interval  Migration Time Threshold
                 type: string
             type: object
           status:

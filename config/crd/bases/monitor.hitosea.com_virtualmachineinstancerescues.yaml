@@ -21,10 +21,10 @@ spec:
     - jsonPath: .status.phase
       name: Phase
       type: string
-    - jsonPath: .status.vmi
+    - jsonPath: .spec.vmi
       name: VMI
       type: string
-    - jsonPath: .status.node
+    - jsonPath: .spec.node
       name: Node
       type: string
     - jsonPath: .metadata.creationTimestamp
@@ -52,9 +52,9 @@ spec:
             description: VirtualMachineInstanceRescueSpec defines the desired state
               of VirtualMachineInstanceRescue
             properties:
-              foo:
-                description: Foo is an example field of VirtualMachineInstanceRescue.
-                  Edit virtualmachineinstancerescue_types.go to remove/update
+              node:
+                type: string
+              vmi:
                 type: string
             type: object
           status:
@@ -64,14 +64,10 @@ spec:
               migration_time:
                 format: date-time
                 type: string
-              node:
-                type: string
               phase:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                   of cluster Important: Run "make" to regenerate code after modifying
                   this file'
-                type: string
-              vmi:
                 type: string
             type: object
         type: object

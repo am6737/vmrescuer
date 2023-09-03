@@ -6,6 +6,7 @@ require (
 	github.com/go-logr/logr v1.2.4
 	github.com/onsi/ginkgo/v2 v2.6.0
 	github.com/onsi/gomega v1.24.1
+	github.com/ouqiang/timewheel v1.0.1
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.27.1
 	k8s.io/apimachinery v0.27.1

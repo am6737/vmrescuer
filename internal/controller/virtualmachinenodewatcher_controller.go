@@ -81,12 +81,15 @@ func NewVirtualMachineNodeWatcherReconciler(mgr ctrl.Manager) *VirtualMachineNod
 //+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachinenodewatchers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachinenodewatchers/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachinenodewatchers/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
-//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete
-//+kubebuilder:rbac:groups=kubevirt.io,resources=virtualmachineinstances,verbs=get;list;watch
-//+kubebuilder:rbac:groups=kubevirt.io,resources=virtualmachineinstancemigrations,verbs=get;list
 //+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachineinstancerescues,verbs=create;delete;get;list;patch;update;watch
 //+kubebuilder:rbac:groups=monitor.hitosea.com,resources=virtualmachineinstancerescues/status,verbs=get;update;patch
+
+//+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+
+//+kubebuilder:rbac:groups=kubevirt.io,resources=virtualmachineinstances,verbs=get;list;watch
+//+kubebuilder:rbac:groups=kubevirt.io,resources=virtualmachineinstancemigrations,verbs=get;list
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -168,8 +171,10 @@ func (r *VirtualMachineNodeWatcherReconciler) Reconcile(ctx context.Context, req
 		return handleDisable()
 
 	case vmnw.Spec.Enable:
-		r.Log.Info(fmt.Sprintf("Update synchronization threshold to %s", r.interval))
+		//r.Log.Info(fmt.Sprintf("Update synchronization threshold to %s", r.interval))
+		//r.Log.Info(fmt.Sprintf("Update VirtualMachineInstanceRescue threshold to %s", clean))
 		r.recorder.Event(&monitorv1.VirtualMachineNodeWatcher{}, corev1.EventTypeNormal, "Update Threshold", fmt.Sprintf("Update synchronization threshold to %s", r.interval))
+		r.recorder.Event(&monitorv1.VirtualMachineNodeWatcher{}, corev1.EventTypeNormal, "Update Threshold", fmt.Sprintf("Update VirtualMachineInstanceRescue clean threshold to %s", clean))
 		// 如果 Spec.Enable 为 true，并且之前已经启动 worker，则只重置清理定时器
 		r.cleanupTimer.Reset(clean)
 	}
@@ -231,13 +236,17 @@ func (r *VirtualMachineNodeWatcherReconciler) addMigration(name string, mvm *mig
 	// 检查虚拟机是否满足加入迁移队列的条件
 	// 检查虚拟机是否正在进行迁移。
 	// 如果虚拟机没有在进行迁移并且可以进行迁移（即满足迁移条件）否则返回
-	ok1, err := r.vm.IsMigrating(context.Background(), mvm.VMI.Name, mvm.VMI.Namespace)
+	ok, err := r.vm.IsMigrating(context.Background(), mvm.VMI.Name, mvm.VMI.Namespace)
 	if err != nil {
 		r.Log.Error(err, "Get Virtual Machine Migration Status")
 		return
 	}
 
-	if ok1 || !mvm.VMI.IsMigratable() {
+	//if ok1 || !mvm.VMI.IsMigratable() {
+	//	return
+	//}
+
+	if ok {
 		return
 	}
 
@@ -476,14 +485,6 @@ func (r *VirtualMachineNodeWatcherReconciler) syncVMToMigrate(ctx context.Contex
 
 	// 遍历不健康的虚拟机实例列表 UnhealthyVMIS，其中包含运行在不健康节点上的虚拟机实例。
 	for _, vmi := range UnhealthyVMIS {
-		//ok, err := r.vm.IsMigrating(ctx, vmi.Name, vmi.Namespace)
-		//if err != nil {
-		//	r.Log.Error(err, "Get Virtual Machine Migration Status")
-		//	continue
-		//}
-		//if !ok && vmi.IsMigratable() {
-		//	r.addMigration(vmi.Name, &migration{VMI: vmi}, vmi.Status.NodeName)
-		//}
 		r.addMigration(vmi.Name, &migration{VMI: vmi}, vmi.Status.NodeName)
 	}
 

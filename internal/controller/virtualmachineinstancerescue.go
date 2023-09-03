@@ -118,7 +118,7 @@ func (r *VirtualMachineNodeWatcherReconciler) vmirDeleteHandler(e event.DeleteEv
 	key := fmt.Sprintf("%s/%s", vmir.Namespace, vmir.Name)
 	r.tw.RemoveTimer(key)
 
-	r.Log.Info(fmt.Sprintf("Delete VirtualMachineInstance %s in migration queue", key))
+	r.Log.Info("Delete VirtualMachineInstanceRescue", "name", vmir.Name, "namespace", vmir.Namespace, "vmi", vmir.Spec.VMI, "status", vmir.Status.Phase)
 }
 
 func (r *VirtualMachineNodeWatcherReconciler) vmirCreateHandler(e event.CreateEvent, q workqueue.RateLimitingInterface) {
@@ -133,7 +133,9 @@ func (r *VirtualMachineNodeWatcherReconciler) vmirCreateHandler(e event.CreateEv
 	// 添加迁移任务到延迟队列 到达设置的阈值时间时启动虚拟机迁移
 	r.tw.AddTimer(r.interval, key, map[string]string{"key": key})
 
-	r.Log.Info(fmt.Sprintf("Add VirtualMachineInstance %s in migration queue", key))
+	//r.Log.Info(fmt.Sprintf("Add VirtualMachineInstance %s in migration queue", fmt.Sprintf("%s/%s", vmir.Namespace, vmir.Spec.VMI)))
+
+	r.Log.Info("Add migration task", "vm", vmir.Spec.VMI, "namespace", vmir.Namespace)
 }
 
 func (r *VirtualMachineNodeWatcherReconciler) vmirUpdateHandler(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
@@ -155,6 +157,6 @@ func (r *VirtualMachineNodeWatcherReconciler) vmirUpdateHandler(e event.UpdateEv
 		// 取消延迟队列中的任务
 		key := fmt.Sprintf("%s/%s", newVmim.Namespace, newVmim.Name)
 		r.tw.RemoveTimer(key)
-		r.Log.Info(fmt.Sprintf("Canceled migration task for VirtualMachineInstanceRescue %s", key))
+		r.Log.Info("Canceled migration task", "name", newVmim.Name, "namespace", newVmim.Namespace, "vmi", newVmim.Spec.VMI)
 	}
 }

@@ -62,11 +62,23 @@ type VirtualMachineNodeWatcherReconciler struct {
 
 func NewVirtualMachineNodeWatcherReconciler(mgr ctrl.Manager) *VirtualMachineNodeWatcherReconciler {
 	ctx, cancel := context.WithCancel(context.Background())
+	// 初始化workqueue
+	wk := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	// 初始化时间轮
+	tw := timewheel.New(1*time.Second, 3600, func(data interface{}) {
+		if dataMap, ok := data.(map[string]string); ok {
+			if value, exists := dataMap["key"]; exists {
+				wk.Add(value)
+			}
+		}
+	})
 	return &VirtualMachineNodeWatcherReconciler{
-		Client:          mgr.GetClient(),
-		Log:             mgr.GetLogger(),
-		Scheme:          mgr.GetScheme(),
-		workqueue:       workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		Client: mgr.GetClient(),
+		Log:    mgr.GetLogger(),
+		Scheme: mgr.GetScheme(),
+
+		tw:              tw,
+		workqueue:       wk,
 		recorder:        mgr.GetEventRecorderFor("VirtualMachineNodeWatcher"),
 		vm:              NewDefaultVirtualMachine(),
 		vmm:             NewVirtualMachineInstanceMigration(mgr.GetClient()),
@@ -142,13 +154,13 @@ func (r *VirtualMachineNodeWatcherReconciler) Reconcile(ctx context.Context, req
 		r.run = true
 		go r.runWorker(r.ctx)
 		// 初始化时间轮
-		r.tw = timewheel.New(1*time.Second, 3600, func(data interface{}) {
-			if dataMap, ok := data.(map[string]string); ok {
-				if value, exists := dataMap["key"]; exists {
-					r.workqueue.Add(value)
-				}
-			}
-		})
+		//r.tw = timewheel.New(1*time.Second, 3600, func(data interface{}) {
+		//	if dataMap, ok := data.(map[string]string); ok {
+		//		if value, exists := dataMap["key"]; exists {
+		//			r.workqueue.Add(value)
+		//		}
+		//	}
+		//})
 		r.tw.Start()
 		return ctrl.Result{}, nil
 	}
